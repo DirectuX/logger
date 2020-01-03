@@ -1,0 +1,241 @@
+#Region "Unit description" '"Program description"
+
+'*********
+'
+'  Pass %LT_Debug to the Log function to control if message is displayed/written or not according to isDebug value
+'
+'*********
+
+'[todo] delete log file if over maxLogCount
+'[todo] archive log file compression
+
+#EndRegion
+
+
+#Region "Uses"
+
+if (Uses "Console") >= 0 then Console_ShowWindow(%CONSOLE_SW_HIDE) ' Do not show console if it was hidden before
+
+#EndRegion
+
+
+#Region "Includes"
+
+#EndRegion
+
+#Region "Equates"
+
+' Log equates
+
+%LT_Debug = 1 as Long 'Display only if isDebug = %TRUE
+%LT_Time = 2 as Long ' Prepend DateTime$
+%LT_ToConsole = 4 as Long
+%LT_ToConsoleTitle = 8 as Long
+%LT_ToMsgBox = 16 as Long
+%LT_ToLogFile= 32 as long
+%LT_ToStatusBar= 64 as long
+'%LT_ToRichedit = 128 as Long ?
+
+$FILE_ROTATION_START_MESSAGE = "Log file rotation * START *."
+$FILE_ROTATION_DONE_MESSAGE = "Log file rotation * DONE *."
+$FILE_BACKUP_MESSAGE = "This Log file backup..."
+$FILE_BACKUP_SUCCESS_MESSAGE = "Successful backup of previous Log file as {1}"
+$FILE_ROTATION_TAG = "[LOG UNIT]"
+$FILE_CREATION_MESSAGE = "Creation of Log file {1}"
+
+#EndRegion
+
+
+Type tLogThis
+
+  isDebug as Boolean
+  logFile as String
+  logFileMaxSize as Long
+  doNotPrependDebug as Boolean
+  
+  ColorTime as Long
+  ColorText as Long
+  ColorDebugText as Long
+  ColorDebugTag as Long
+  ColorBackground as Long
+  
+  titleSeparator as String
+  titleSeparatorFile AS String
+  timeSeparator as String
+  timeSeparatorFile as String
+  tagSeparator as String
+  tagSeparatorFile as String
+  endLineFile as String
+  debugTag as String
+  msgboxStyle as number
+  verbose as Boolean ' If %TRUE, will display error messages even if Not isDebug
+
+  statusbarhWnd as Number
+  statusbarctrlID as number
+  statusbarlPart as Number
+
+  Function _Create(isDebug as Boolean, showConsole as boolean, Optional doNotPrependDebug as Boolean, verbose as Boolean)
+
+    me.isDebug = isDebug
+    me.doNotPrependDebug = doNotPrependDebug
+    if isDebug or (not isDebug and verbose) then me.verbose = verbose
+     
+    if showConsole then Console_ShowWindow(%CONSOLE_SW_SHOW)
+    
+    'Default settings
+    me.ColorTime = %CONSOLE_FOREGROUND_BLUE ' blue
+    me.ColorText = %CONSOLE_FOREGROUND_RED OR %CONSOLE_FOREGROUND_BLUE OR %CONSOLE_FOREGROUND_GREEN ' white
+    me.ColorDebugText = %CONSOLE_FOREGROUND_RED OR %CONSOLE_FOREGROUND_GREEN ' orange
+    me.ColorDebugTag = %CONSOLE_FOREGROUND_RED OR %CONSOLE_FOREGROUND_GREEN ' orange
+    me.ColorBackground = Console_BackgroundRGB(0, 0, 0, 0 ) ' black background
+    me.titleSeparator = " : "
+    me.titleSeparatorFile = " ; "
+    me.timeSeparator = $SPC
+    me.timeSeparatorFile = " ; "
+    me.tagSeparator = $SPC
+    me.tagSeparatorFile = " ; "
+    me.endLineFile = $CRLF
+    me.debugTag = "[DEBUG]"
+    me.msgboxStyle = %MB_ICONINFORMATION + %MB_OK + %MB_TOPMOST
+
+  end function
+  
+  Function SetLogFile (logFileFullPath as String, logFileMaxSize as Long)
+  
+    me.logFile = logFileFullPath
+    me.logFileMaxSize = logFileMaxSize
+    
+  end function
+  
+  function SetStatusbar(statusbarhWnd as Number, statusbarctrlID as number, statusbarlPart as Number)
+  
+    me.statusbarhWnd = statusbarhWnd
+    me.statusbarctrlID = statusbarctrlID
+    me.statusbarlPart = statusbarlPart
+  
+  end function
+
+  function log(logWhere as long = 0, logWhat as String, optional logWhatTitle as string, isImportant as Boolean) as Boolean
+    
+    Local allOK as Boolean = %TRUE
+    Local sTag as String
+    Local sTagF as String
+    Local sDT as String
+    Local sDTF as String
+    Local successFile as Number
+    
+    if me.isDebug or not Bit_Get(logWhere,0) then ' Display debug and production messages (all messages) OR Display production messages only (no debug messages)
+
+      if logWhatTitle then logWhatTitle &= me.titleSeparator
+      
+      if Bit_Get(logWhere,1) then ' %LT_Time is SET, adds timestamp
+        sDTF = DateTime$
+        sDT = sDTF & me.timeSeparator
+        sDTF &= me.timeSeparatorFile
+      End If
+      if Bit_Get(logWhere,0) and not me.doNotPrependDebug then ' %LT_Debug is SET, signals a debug only message, adds a [DEBUG] tag.
+        sTagF = me.debugTag & me.tagSeparatorFile
+        sTag = me.debugTag & me.tagSeparator
+      end if
+      
+      if Bit_Get(logWhere,2) then ' %LT_ToConsole is SET
+        Print sDT IN IIf(isImportant, me.ColorTime OR me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, me.ColorTime OR me.ColorBackground)
+        Print sTag in IIf(isImportant, me.ColorDebugTag OR me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, me.ColorDebugTag OR me.ColorBackground) 
+        PrintL((LogWhatTitle & LogWhat) IN (Switch(Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground, isImportant and Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, isImportant, me.ColorText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, %TRUE, me.ColorText Or me.ColorBackground)))
+      end if
+      
+      if Bit_Get(logWhere,3) then ' %LT_ToConsoleTitle is SET
+        Console_SetTitle(sDT & sTag & LogWhatTitle & LogWhat)
+      end if
+      
+      if Bit_Get(logWhere,4) then ' %LT_ToMsgBox is SET
+        MsgBoxW(0,logWhat, me.msgboxStyle, sDT & sTag & logWhatTitle)
+      end if
+      
+      if Bit_Get(logWhere,5) then ' %LT_ToLogFile is SET
+        if me.RotateLog(sDTF) = %FALSE then allOK = allOK and %FALSE
+        successFile = FILE_Append(me.logFile,(sDTF & sTagF & logWhatTitle & me.titleSeparatorFile & logWhat & me.endLineFile))
+        if successFile <> 0 Then allOK = allOK and %FALSE
+        Reset successFile
+      End If
+      
+      if Bit_Get(logWhere,6) then ' %LT_ToStatusBar is SET
+        if me.statusbarhWnd <> 0 and me.statusbarctrlID <> 0 and me.statusbarlPart <> 0 Then ' Function SetStatusbar was previously called
+          StatusBar_SetText(me.statusbarhWnd, me.statusbarctrlID, logWhatTitle & me.titleSeparator & logWhat, me.statusbarlPart)
+        Else
+          allOK = allOK and %FALSE
+        end if
+      End If
+    
+    end If
+    
+    if allOK then
+      Return %TRUE
+    Else
+      if me.verbose then MsgBoxw(Null,"Error in function :" & Function_Name)
+      Return %FALSE
+    end if
+      
+  end function
+
+  Function RotateLog() as Boolean
+    
+    Local allOK as Boolean = %TRUE
+    Local sLog, sLog2 as String
+    Local successFile as Number
+    Local newFilename as String
+    
+    if me.logFileMaxSize >0 and len(me.logFile) > 3 then 'Function SetLogFile was previously called
+      
+      if not FILE_Exists(me.logFile) Then ' Create new log file
+        sLog = DateTime$ & me.timeSeparatorFile & $FILE_ROTATION_TAG & me.tagSeparatorFile & StrFormat$($FILE_CREATION_MESSAGE, me.logFile) & me.endLineFile
+        successFile = FILE_Save(me.logFile, sLog)
+        if successFile <> 0 Then allOK = allOK and %FALSE
+        reset successFile
+      end if
+      
+      sLog = DateTime$ & me.timeSeparatorFile & $FILE_ROTATION_TAG & me.tagSeparatorFile & $FILE_ROTATION_START_MESSAGE & me.endLineFile
+      sLog2 = me.timeSeparatorFile & $FILE_ROTATION_TAG & me.tagSeparatorFile & $FILE_BACKUP_MESSAGE & me.endLineFile
+
+      if allOK and FILE_Size(me.logFile) + len(sLog) + 19 + Len(sLog2) > me.logFileMaxSize Then ' Size will be beyond me.logFileMaxSize
+        successFile = FILE_Append(me.logFile, sLog)
+        if successFile <> 0 Then allOK = allOK and %FALSE
+        reset successFile
+        if allOK Then
+          successFile = FILE_Append(me.logFile, DateTime$ & sLog2)
+          if successFile <> 0 Then allOK = allOK and %FALSE
+          reset successFile
+          if allOK Then
+            newFilename = FILE_PathSplit(me.logFile, %PATH_ROOTPATH) & Date$ (3) & $SPC & time$(2) & $SPC & FILE_PathSplit(me.logFile, %PATH_FILEEXT)
+            successFile = FILE_Rename(me.logFile, newFilename)
+            if successFile <> 0 Then allOK = allOK and %FALSE
+            reset successFile
+          End If
+        End If
+        if allOK Then
+          sLog = DateTime$ & me.timeSeparatorFile & $FILE_ROTATION_TAG & me.tagSeparatorFile & StrFormat$($FILE_BACKUP_SUCCESS_MESSAGE, newFilename) & me.endLineFile
+          successFile = FILE_Append(me.logFile, sLog)
+          if successFile <> 0 Then allOK = allOK and %FALSE
+          reset successFile
+        End If
+        if allOK Then
+          sLog = DateTime$ & me.timeSeparatorFile & $FILE_ROTATION_TAG & me.tagSeparatorFile & StrFormat$($FILE_ROTATION_DONE_MESSAGE, newFilename) & me.endLineFile
+          successFile = FILE_Append(me.logFile, sLog)
+          if successFile <> 0 Then allOK = allOK and %FALSE
+          reset successFile
+        End If
+      End If
+    Else
+      allOK = allOK and %FALSE
+    end if
+    
+    if allOK then
+      Return %TRUE
+    Else
+      if me.verbose then MsgBoxw(Null,"Error in function :" & Function_Name)
+      Return %FALSE
+    End If
+  
+  end function
+ 
+end type

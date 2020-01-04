@@ -1,4 +1,4 @@
-#Region "Unit description" '"Program description"
+﻿#Region "Unit description" '"Program description"
 
 '*********
 '
@@ -43,20 +43,31 @@ $FILE_BACKUP_SUCCESS_MESSAGE = "Successful backup of previous Log file as {1}"
 $FILE_ROTATION_TAG = "[LOG UNIT]"
 $FILE_CREATION_MESSAGE = "Creation of Log file {1}"
 
-#EndRegion
+begin const
+  %TAG_PANIC ' 1
+  %TAG_ALERT ' 2
+  %TAG_CRIT
+  %TAG_ERR
+  %TAG_WARN
+  %TAG_NOTICE
+  %TAG_INFO
+  %TAG_DEBUG ' 8
+  %TAG_NOTAG ' 9
+End const
 
+#EndRegion
 
 Type tLogThis
 
   isDebug as Boolean
   logFile as String
   logFileMaxSize as Long
-  doNotPrependDebug as Boolean
+  doNotPrependTag as Boolean
   
   ColorTime as Long
   ColorText as Long
   ColorDebugText as Long
-  ColorDebugTag as Long
+  ColorTag as Long
   ColorBackground as Long
   
   titleSeparator as String
@@ -66,18 +77,26 @@ Type tLogThis
   tagSeparator as String
   tagSeparatorFile as String
   endLineFile as String
-  debugTag as String
+  TagDebug as String
+  TagInfo as String
+  TagNotice as String
+  TagWarn as String
+  TagErr as String
+  TagCrit as String
+  TagAlert as String
+  TagPanic as String
   msgboxStyle as number
-  verbose as Boolean ' If %TRUE, will display error messages even if Not isDebug
+  verbose as Boolean ' If %TRUE, will display debug messages even if Not isDebug
+  minSeverityHighlight as Byte
 
   statusbarhWnd as Number
   statusbarctrlID as number
   statusbarlPart as Number
 
-  Function _Create(isDebug as Boolean, showConsole as boolean, Optional doNotPrependDebug as Boolean, verbose as Boolean)
+  Function _Create(isDebug as Boolean, showConsole as boolean, Optional doNotPrependTag as Boolean, verbose as Boolean)
 
     me.isDebug = isDebug
-    me.doNotPrependDebug = doNotPrependDebug
+    me.doNotPrependTag = doNotPrependTag
     if isDebug or (not isDebug and verbose) then me.verbose = verbose
      
     if showConsole then Console_ShowWindow(%CONSOLE_SW_SHOW)
@@ -86,7 +105,7 @@ Type tLogThis
     me.ColorTime = %CONSOLE_FOREGROUND_BLUE ' blue
     me.ColorText = %CONSOLE_FOREGROUND_RED OR %CONSOLE_FOREGROUND_BLUE OR %CONSOLE_FOREGROUND_GREEN ' white
     me.ColorDebugText = %CONSOLE_FOREGROUND_RED OR %CONSOLE_FOREGROUND_GREEN ' orange
-    me.ColorDebugTag = %CONSOLE_FOREGROUND_RED OR %CONSOLE_FOREGROUND_GREEN ' orange
+    me.ColorTag = %CONSOLE_FOREGROUND_RED OR %CONSOLE_FOREGROUND_GREEN ' orange
     me.ColorBackground = Console_BackgroundRGB(0, 0, 0, 0 ) ' black background
     me.titleSeparator = " : "
     me.titleSeparatorFile = " ; "
@@ -95,8 +114,17 @@ Type tLogThis
     me.tagSeparator = $SPC
     me.tagSeparatorFile = " ; "
     me.endLineFile = $CRLF
-    me.debugTag = "[DEBUG]"
-    me.msgboxStyle = %MB_ICONINFORMATION + %MB_OK + %MB_TOPMOST
+    me.TagDebug = "[DEBUGGING]"
+    me.TagInfo = "[INFORMATIONAL]"
+    me.TagNotice = "[NOTICE]"
+    me.TagWarn = "[WARNING]"
+    me.TagErr = "[ERROR]"
+    me.TagCrit = "[CRITICAL]"
+    me.TagAlert = "[ALERT]"
+    me.TagPanic = "[EMERGENCY]"
+    me.minSeverityHighlight = %TAG_ERR
+  
+    me.msgboxStyle = %MB_OK + %MB_TOPMOST ' %MB_ICONINFORMATION
 
   end function
   
@@ -115,7 +143,7 @@ Type tLogThis
   
   end function
 
-  function log(logWhere as long = 0, logWhat as String, optional logWhatTitle as string, isImportant as Boolean) as Boolean
+  function logThis(logWhere as long = 0, logWhat as String, optional logWhatTitle as string, severityTag as Byte) as Boolean
     
     Local allOK as Boolean = %TRUE
     Local sTag as String
@@ -133,15 +161,16 @@ Type tLogThis
         sDT = sDTF & me.timeSeparator
         sDTF &= me.timeSeparatorFile
       End If
-      if Bit_Get(logWhere,0) and not me.doNotPrependDebug then ' %LT_Debug is SET, signals a debug only message, adds a [DEBUG] tag.
-        sTagF = me.debugTag & me.tagSeparatorFile
-        sTag = me.debugTag & me.tagSeparator
+      if severityTag <> %TAG_NOTAG ANd not me.doNotPrependTag then ' %LT_Debug is SET, signals a debug only message, adds a [DEBUG] tag.
+        sTagF = Switch$(severityTag = %TAG_DEBUG, me.TagDebug, severityTag = %TAG_INFO, me.TagInfo, severityTag = %TAG_NOTICE, me.TagNotice, severityTag = %TAG_WARN, me.TagWarn, severityTag = %TAG_ERR, me.TagErr, severityTag = %TAG_CRIT, me.TagCrit, severityTag = %%TAG_ALERT, me.TagAlert, severityTag = %%TAG_PANIC, me.TagPanic)
+        sTag = sTagF & me.tagSeparator
+        sTagF &= me.tagSeparatorFile
       end if
       
       if Bit_Get(logWhere,2) then ' %LT_ToConsole is SET
-        Print sDT IN IIf(isImportant, me.ColorTime OR me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, me.ColorTime OR me.ColorBackground)
-        Print sTag in IIf(isImportant, me.ColorDebugTag OR me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, me.ColorDebugTag OR me.ColorBackground) 
-        PrintL((LogWhatTitle & LogWhat) IN (Switch(Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground, isImportant and Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, isImportant, me.ColorText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, %TRUE, me.ColorText Or me.ColorBackground)))
+        Print sDT IN IIf(severityTag <= me.minSeverityHighlight, me.ColorTime OR me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, me.ColorTime OR me.ColorBackground)
+        Print sTag in IIf(severityTag <= me.minSeverityHighlight, me.ColorTag OR me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, me.ColorTag OR me.ColorBackground) 
+        PrintL((LogWhatTitle & LogWhat) IN (Switch(Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground, severityTag <= me.minSeverityHighlight and Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, severityTag <= me.minSeverityHighlight, me.ColorText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, %TRUE, me.ColorText Or me.ColorBackground)))
       end if
       
       if Bit_Get(logWhere,3) then ' %LT_ToConsoleTitle is SET
@@ -149,7 +178,7 @@ Type tLogThis
       end if
       
       if Bit_Get(logWhere,4) then ' %LT_ToMsgBox is SET
-        MsgBoxW(0,logWhat, me.msgboxStyle, sDT & sTag & logWhatTitle)
+        MsgBoxW(0,logWhat, me.msgboxStyle + Switch(severityTag <= %TAG_ERR, %MB_ICONERROR, severityTag = %TAG_WARN, %MB_ICONWARNING, %TRUE, %MB_ICONINFORMATION), sDT & sTag & logWhatTitle)
       end if
       
       if Bit_Get(logWhere,5) then ' %LT_ToLogFile is SET

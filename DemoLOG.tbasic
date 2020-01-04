@@ -1,0 +1,66 @@
+﻿
+USES "UI"
+#Include "LOG.tbasicu"
+'#resource "log.rc"
+'DIALOG New units, Name IDD_DLG1, %HWND_DESKTOP
+
+
+
+'Function _Create(isDebug as Boolean, showConsole as boolean, Optional doNotPrependTag as Boolean, verbose as Boolean)
+
+dim logger as tLogthis(%TRUE, %TRUE, %FALSE, %FALSE)
+
+
+'Function SetLogFile (logFileFullPath as String, logFileMaxSize as Long)
+
+logger.SetLogFile (APP_ScriptPath & "Demo.log", 1024) ' MaxSize = 1Ko for demo purpose
+
+
+
+'function logThis(logWhere as long = 0, logWhat as String, optional logWhatTitle as string, severityTag as Byte) as Boolean
+'Returns %TRUE if everything went well
+
+'logWhere equates :
+
+'%LT_Debug = 1 ' will display only if isDebug = %TRUE
+'%LT_Time = 2 ' will prepend DateTime$
+'%LT_ToConsole 
+'%LT_ToConsoleTitle
+'%LT_ToMsgBox
+'%LT_ToLogFile
+'%LT_ToStatusBar= 64 as long - Not yet in this demo
+'%LT_ToRichedit = 128 as Long ? - Not yet implemented
+
+'severityTag equates : 
+
+'%TAG_PANIC ' 1
+'%TAG_ALERT ' 2
+'%TAG_CRIT
+'%TAG_ERR
+'%TAG_WARN
+'%TAG_NOTICE
+'%TAG_INFO
+'%TAG_DEBUG ' 8
+'%TAG_NOTAG ' 9
+
+logger.logThis(%LT_ToMsgBox,"This is a message", "This is a title", %TAG_INFO)
+
+
+
+
+
+
+waitkey
+
+
+
+
+'DIALOG SHOW MODAL IDD_DLG1.Handle
+
+'Function SetStatusbar(statusbarhWnd as Number, statusbarctrlID as number, statusbarlPart as Number)
+'logger.SetStatusbar(
+
+'CallBack Function IDD_DLG1_OnLoad() As Long
+  ''control set Resize CBHNDL, IDC_SBR1.id          , 1, 0, 1, 1
+'  control set Resize CBHNDL, IDC_BTN1.id          , 0, 1, 0, 1
+'end Function

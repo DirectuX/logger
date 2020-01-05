@@ -1,8 +1,14 @@
 ﻿
 USES "UI"
+Uses "OS"
 #Include "LOG.tbasicu"
 '#resource "log.rc"
 'DIALOG New units, Name IDD_DLG1, %HWND_DESKTOP
+
+'For the demo, expand the console
+
+Console_SetScreenBufferSize(120,300)
+Console_ShowWindow(%Console_SW_SHOWMAXIMIZED)
 
 
 
@@ -43,13 +49,32 @@ logger.SetLogFile (APP_ScriptPath & "Demo.log", 1024) ' MaxSize = 1Ko for demo p
 '%TAG_DEBUG ' 8
 '%TAG_NOTAG ' 9
 
-logger.logThis(%LT_ToMsgBox,"This is a message", "This is a title", %TAG_INFO)
+logger.logThis(%LT_ToMsgBox+%LT_ToConsole, "This is a log to textBox and console", "This is a title", %TAG_INFO)
 
+logger.logThis(%LT_ToMsgBox+%LT_ToConsole, "Next, set the console title", "EXAMPLE 2", %TAG_INFO)
 
+logger.logThis(%LT_ToConsoleTitle, "This is a title", , %TAG_NOTAG)
 
+logger.logThis(%LT_ToMsgBox+%LT_ToConsole, "On console, you can jump a line too", "EXAMPLE 4", %TAG_NOTAG)
 
+logger.logThis(%LT_ToConsole, "", "", %TAG_NOTAG)
 
+logger.logThis(%LT_Time+%LT_ToConsole, "Log with timestamp", "EXAMPLE 5", %TAG_DEBUG)
 
+logger.logThis(%LT_ToConsole, "There are 8+1 levels of severity, as WARNING or ERROR ...", "EXAMPLE 6", %TAG_ERR)
+
+logger.ColorText = %CONSOLE_FOREGROUND_GREEN+%CONSOLE_FOREGROUND_INTENSITY
+logger.TagDebug = "[DEFAULTS ARE MODIFIABLE]"
+
+logger.logThis(%LT_ToConsole, "Every default value is modifiable from your own script", "EXAMPLE 7", %TAG_DEBUG)
+
+logger.logThis(%LT_ToMsgBox, "Now logging to file...", "EXAMPLE 8", %TAG_WARN)
+
+logger.logThis(%LT_Time+%LT_ToLogFile, "This is a log in a file...", "EXAMPLE 8", %TAG_INFO)
+
+OS_ShellExecute("open", APP_ScriptPath & "Demo.log",,,%SW_SHOWNORMAL)
+
+Printl "Press a key to quit"
 waitkey
 
 

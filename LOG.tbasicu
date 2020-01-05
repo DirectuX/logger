@@ -15,6 +15,7 @@
 #Region "Uses"
 
 if (Uses "Console") >= 0 then Console_ShowWindow(%CONSOLE_SW_HIDE) ' Do not show console if it was hidden before
+uses "File"
 
 #EndRegion
 
@@ -102,7 +103,7 @@ Type tLogThis
     if showConsole then Console_ShowWindow(%CONSOLE_SW_SHOW)
     
     'Default settings
-    me.ColorTime = %CONSOLE_FOREGROUND_BLUE ' blue
+    me.ColorTime = %CONSOLE_FOREGROUND_BLUE + %Console_FOREGROUND_GREEN + %CONSOLE_FOREGROUND_INTENSITY ' bright cyan
     me.ColorText = %CONSOLE_FOREGROUND_RED OR %CONSOLE_FOREGROUND_BLUE OR %CONSOLE_FOREGROUND_GREEN ' white
     me.ColorDebugText = %CONSOLE_FOREGROUND_RED OR %CONSOLE_FOREGROUND_GREEN ' orange
     me.ColorTag = %CONSOLE_FOREGROUND_RED OR %CONSOLE_FOREGROUND_GREEN ' orange
@@ -151,10 +152,30 @@ Type tLogThis
     Local sDT as String
     Local sDTF as String
     Local successFile as Number
+    Local logWhatTitleFile = logWhatTitle
+    
+    '[t] Workaround for Switch$ error ( see https://www.thinbasic.com/community/project.php?issueid=616 ) ...
+    local TagDebug = me.TagDebug 
+    local TagInfo = me.TagInfo
+    local TagNotice = me.TagNotice
+    local TagWarn = me.TagWarn
+    local TagErr = me.TagErr
+    local TagCrit = me.TagCrit
+    local TagAlert = me.TagAlert
+    local TagPanic = me.TagPanic
+    
+    Local ColorDebugText = me.ColorDebugText
+    Local ColorBackground = me.ColorBackground
+    Local ColorText = me.ColorText
+    ' ... workaround
+    
+    '[t] Workaround for PrintL error ( see https://www.thinbasic.com/community/project.php?issueid=617 ) ...
+    Local myColor as number
+    ' ... workaround
+    
+    Local logFile = me.logFile
     
     if me.isDebug or not Bit_Get(logWhere,0) then ' Display debug and production messages (all messages) OR Display production messages only (no debug messages)
-
-      if logWhatTitle then logWhatTitle &= me.titleSeparator
       
       if Bit_Get(logWhere,1) then ' %LT_Time is SET, adds timestamp
         sDTF = DateTime$
@@ -162,15 +183,12 @@ Type tLogThis
         sDTF &= me.timeSeparatorFile
       End If
       if severityTag <> %TAG_NOTAG ANd not me.doNotPrependTag then ' %LT_Debug is SET, signals a debug only message, adds a [DEBUG] tag.
-        sTagF = Switch$(severityTag = %TAG_DEBUG, me.TagDebug, severityTag = %TAG_INFO, me.TagInfo, severityTag = %TAG_NOTICE, me.TagNotice, severityTag = %TAG_WARN, me.TagWarn, severityTag = %TAG_ERR, me.TagErr, severityTag = %TAG_CRIT, me.TagCrit, severityTag = %%TAG_ALERT, me.TagAlert, severityTag = %%TAG_PANIC, me.TagPanic)
+        
+        sTagF = Switch$(severityTag = %TAG_DEBUG, me.TagDebug, severityTag = %TAG_INFO, me.TagInfo, severityTag = %TAG_NOTICE, me.TagNotice, severityTag = %TAG_WARN, me.TagWarn, severityTag = %TAG_ERR, me.TagErr, severityTag = %TAG_CRIT, me.TagCrit, severityTag = %TAG_ALERT, me.TagAlert, severityTag = %TAG_PANIC, me.TagPanic)
+        'sTagF = Switch$(severityTag = %TAG_DEBUG, TagDebug, severityTag = %TAG_INFO, TagInfo, severityTag = %TAG_NOTICE, TagNotice, severityTag = %TAG_WARN, TagWarn, severityTag = %TAG_ERR, TagErr, severityTag = %TAG_CRIT, TagCrit, severityTag = %TAG_ALERT, TagAlert, severityTag = %TAG_PANIC, TagPanic)
+        
         sTag = sTagF & me.tagSeparator
         sTagF &= me.tagSeparatorFile
-      end if
-      
-      if Bit_Get(logWhere,2) then ' %LT_ToConsole is SET
-        Print sDT IN IIf(severityTag <= me.minSeverityHighlight, me.ColorTime OR me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, me.ColorTime OR me.ColorBackground)
-        Print sTag in IIf(severityTag <= me.minSeverityHighlight, me.ColorTag OR me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, me.ColorTag OR me.ColorBackground) 
-        PrintL((LogWhatTitle & LogWhat) IN (Switch(Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground, severityTag <= me.minSeverityHighlight and Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, severityTag <= me.minSeverityHighlight, me.ColorText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, %TRUE, me.ColorText Or me.ColorBackground)))
       end if
       
       if Bit_Get(logWhere,3) then ' %LT_ToConsoleTitle is SET
@@ -181,9 +199,29 @@ Type tLogThis
         MsgBoxW(0,logWhat, me.msgboxStyle + Switch(severityTag <= %TAG_ERR, %MB_ICONERROR, severityTag = %TAG_WARN, %MB_ICONWARNING, %TRUE, %MB_ICONINFORMATION), sDT & sTag & logWhatTitle)
       end if
       
+      if len(logWhatTitle) > 0 then logWhatTitle &= me.titleSeparator
+      
+      if Bit_Get(logWhere,2) then ' %LT_ToConsole is SET
+        Print sDT IN IIf(severityTag <= me.minSeverityHighlight, me.ColorTime OR me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, me.ColorTime OR me.ColorBackground)
+        Print sTag in IIf(severityTag <= me.minSeverityHighlight, me.ColorTag OR me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, me.ColorTag OR me.ColorBackground) 
+        
+'[t] Workaround for PrintL error ( see https://www.thinbasic.com/community/project.php?issueid=617 ) ...
+        
+        'PrintL((LogWhatTitle & LogWhat) IN (Switch(Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground, severityTag <= me.minSeverityHighlight and Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, severityTag <= me.minSeverityHighlight, me.ColorText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, %TRUE, me.ColorText Or me.ColorBackground)))
+        'PrintL(LogWhatTitle & LogWhat IN %CONSOLE_FOREGROUND_BLUE)'(Switch(Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground, severityTag <= me.minSeverityHighlight and Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, severityTag <= me.minSeverityHighlight, me.ColorText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, %TRUE, me.ColorText Or me.ColorBackground)))
+       
+        myColor = Switch(Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground, severityTag <= me.minSeverityHighlight and Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, severityTag <= me.minSeverityHighlight, me.ColorText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, %TRUE, me.ColorText Or me.ColorBackground)
+        PrintL(LogWhatTitle & LogWhat IN myColor)
+        
+' ... workaround
+    
+      end if
+      
       if Bit_Get(logWhere,5) then ' %LT_ToLogFile is SET
-        if me.RotateLog(sDTF) = %FALSE then allOK = allOK and %FALSE
-        successFile = FILE_Append(me.logFile,(sDTF & sTagF & logWhatTitle & me.titleSeparatorFile & logWhat & me.endLineFile))
+        if me.RotateLog = %FALSE then allOK = allOK and %FALSE
+        local sb as string
+        sb = sDTF & sTagF & logWhatTitleFile & me.titleSeparatorFile & logWhat & me.endLineFile
+        successFile = FILE_Append(me.logFile,sb)
         if successFile <> 0 Then allOK = allOK and %FALSE
         Reset successFile
       End If
@@ -213,10 +251,15 @@ Type tLogThis
     Local sLog, sLog2 as String
     Local successFile as Number
     Local newFilename as String
+    '[t] <this part needs to be tested>
+    
+    Local logFileE as String
+    Local logFile = me.logFile
     
     if me.logFileMaxSize >0 and len(me.logFile) > 3 then 'Function SetLogFile was previously called
       
-      if not FILE_Exists(me.logFile) Then ' Create new log file
+      logFileE = FILE_Exists(me.logFile)
+      if not logFileE Then ' Create new log file
         sLog = DateTime$ & me.timeSeparatorFile & $FILE_ROTATION_TAG & me.tagSeparatorFile & StrFormat$($FILE_CREATION_MESSAGE, me.logFile) & me.endLineFile
         successFile = FILE_Save(me.logFile, sLog)
         if successFile <> 0 Then allOK = allOK and %FALSE

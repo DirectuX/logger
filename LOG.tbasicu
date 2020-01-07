@@ -63,7 +63,7 @@ Type tLogThis
   isDebug as Boolean
   logFile as String
   logFileMaxSize as Long
-  doNotPrependTag as Boolean
+  prependTag as Boolean
   
   ColorTime as Long
   ColorText as Long
@@ -94,15 +94,12 @@ Type tLogThis
   statusbarctrlID as number
   statusbarlPart as Number
 
-  Function _Create(isDebug as Boolean, showConsole as boolean, Optional doNotPrependTag as Boolean, verbose as Boolean)
-
-    me.isDebug = isDebug
-    me.doNotPrependTag = doNotPrependTag
-    if isDebug or (not isDebug and verbose) then me.verbose = verbose
-     
-    if showConsole then Console_ShowWindow(%CONSOLE_SW_SHOW)
+  Function _Create()
     
     'Default settings
+    me.isDebug = %FALSE
+    me.verbose = %FALSE
+    me.prependTag = %TRUE
     me.ColorTime = %CONSOLE_FOREGROUND_BLUE + %Console_FOREGROUND_GREEN + %CONSOLE_FOREGROUND_INTENSITY ' bright cyan
     me.ColorText = %CONSOLE_FOREGROUND_RED OR %CONSOLE_FOREGROUND_BLUE OR %CONSOLE_FOREGROUND_GREEN ' white
     me.ColorDebugText = %CONSOLE_FOREGROUND_RED OR %CONSOLE_FOREGROUND_GREEN ' orange
@@ -124,7 +121,6 @@ Type tLogThis
     me.TagAlert = "[ALERT]"
     me.TagPanic = "[EMERGENCY]"
     me.minSeverityHighlight = %TAG_ERR
-  
     me.msgboxStyle = %MB_OK + %MB_TOPMOST ' %MB_ICONINFORMATION
 
   end function
@@ -144,7 +140,7 @@ Type tLogThis
   
   end function
 
-  function logThis(logWhere as long = 0, logWhat as String, optional logWhatTitle as string, severityTag as Byte) as Boolean
+  function write(logWhere as long = 0, logWhat as String, optional logWhatTitle as string, severityTag as Byte) as Boolean
     
     Local allOK as Boolean = %TRUE
     Local sTag as String
@@ -182,7 +178,7 @@ Type tLogThis
         sDT = sDTF & me.timeSeparator
         sDTF &= me.timeSeparatorFile
       End If
-      if severityTag <> %TAG_NOTAG ANd not me.doNotPrependTag then ' %LT_Debug is SET, signals a debug only message, adds a [DEBUG] tag.
+      if severityTag <> %TAG_NOTAG ANd me.prependTag then ' %LT_Debug is SET, signals a debug only message, adds a [DEBUG] tag.
         
         sTagF = Switch$(severityTag = %TAG_DEBUG, me.TagDebug, severityTag = %TAG_INFO, me.TagInfo, severityTag = %TAG_NOTICE, me.TagNotice, severityTag = %TAG_WARN, me.TagWarn, severityTag = %TAG_ERR, me.TagErr, severityTag = %TAG_CRIT, me.TagCrit, severityTag = %TAG_ALERT, me.TagAlert, severityTag = %TAG_PANIC, me.TagPanic)
         'sTagF = Switch$(severityTag = %TAG_DEBUG, TagDebug, severityTag = %TAG_INFO, TagInfo, severityTag = %TAG_NOTICE, TagNotice, severityTag = %TAG_WARN, TagWarn, severityTag = %TAG_ERR, TagErr, severityTag = %TAG_CRIT, TagCrit, severityTag = %TAG_ALERT, TagAlert, severityTag = %TAG_PANIC, TagPanic)
@@ -239,7 +235,7 @@ Type tLogThis
     if allOK then
       Return %TRUE
     Else
-      if me.verbose then MsgBoxw(Null,"Error in function :" & Function_Name)
+      if isDebug or (not isDebug and verbose) then MsgBoxw(Null,"Error in function :" & Function_Name)
       Return %FALSE
     end if
       
@@ -304,7 +300,7 @@ Type tLogThis
     if allOK then
       Return %TRUE
     Else
-      if me.verbose then MsgBoxw(Null,"Error in function :" & Function_Name)
+      if isDebug or (not isDebug and verbose) then MsgBoxw(Null,"Error in function :" & Function_Name)
       Return %FALSE
     End If
   

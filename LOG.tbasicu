@@ -93,6 +93,9 @@ Type tLogThis
   statusbarhWnd as Number
   statusbarctrlID as number
   statusbarlPart as Number
+  
+  defaultTarget as long
+  defaultTitle as String
 
   Function _Create()
     
@@ -239,6 +242,34 @@ Type tLogThis
       Return %FALSE
     end if
       
+  end function
+
+  function wPanic(logWhat as String) as Boolean  
+    Return me.write(me.defaultTarget,logWhat,me.defaultTitle,%TAG_PANIC)
+  end function
+  function wAlert(logWhat as String) as Boolean  
+    Return me.write(me.defaultTarget,logWhat,me.defaultTitle,%TAG_ALERT)
+  end function
+    function wCrit(logWhat as String) as Boolean  
+    Return me.write(me.defaultTarget,logWhat,me.defaultTitle,%TAG_CRIT)
+  end function
+  function wErr(logWhat as String) as Boolean  
+    Return me.write(me.defaultTarget,logWhat,me.defaultTitle,%TAG_ERR)
+  end function
+  function wWarn(logWhat as String) as Boolean  
+    Return me.write(me.defaultTarget,logWhat,me.defaultTitle,%TAG_WARN)
+  end function
+  function wNotice(logWhat as String) as Boolean  
+    Return me.write(me.defaultTarget,logWhat,me.defaultTitle,%TAG_NOTICE)
+  end function
+  function wInfo(logWhat as String) as Boolean  
+    Return me.write(me.defaultTarget,logWhat,me.defaultTitle,%TAG_INFO)
+  end function
+  function wDebug(logWhat as String) as Boolean  
+    Return me.write(me.defaultTarget,logWhat,me.defaultTitle,%TAG_DEBUG)
+  end function
+  function wNotag(logWhat as String) as Boolean  
+    Return me.write(me.defaultTarget,logWhat,me.defaultTitle,%TAG_NOTAG)
   end function
 
   Function RotateLog() as Boolean

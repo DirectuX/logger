@@ -1,4 +1,4 @@
-﻿#Region "Unit description" '"Program description"
+#Region "Unit description" '"Program description"
 
 '*********
 '
@@ -11,7 +11,7 @@
 
 #EndRegion
 
-
+ 
 #Region "Uses"
 
 if (Uses "Console") >= 0 then Console_ShowWindow(%CONSOLE_SW_HIDE) ' Do not show console if it was hidden before
@@ -27,22 +27,23 @@ uses "File"
 #Region "Equates"
 
 ' Log equates
-
-%LT_Debug = 1 as Long 'Display only if isDebug = %TRUE
-%LT_Time = 2 as Long ' Prepend DateTime$
-%LT_ToConsole = 4 as Long
-%LT_ToConsoleTitle = 8 as Long
-%LT_ToMsgBox = 16 as Long
-%LT_ToLogFile= 32 as long
-%LT_ToStatusBar= 64 as long
-'%LT_ToRichedit = 128 as Long ?
+begin Const
+  %LT_Debug          = 1 'Display only if isDebug = %TRUE
+  %LT_Time           = 2 ' Prepend DateTime$
+  %LT_ToConsole      = 4
+  %LT_ToConsoleTitle = 8
+  %LT_ToMsgBox       = 16
+  %LT_ToLogFile      = 32
+  %LT_ToStatusBar    = 64
+  '%LT_ToRichedit = 128
+end const
 
 $FILE_ROTATION_START_MESSAGE = "Log file rotation * START *."
-$FILE_ROTATION_DONE_MESSAGE = "Log file rotation * DONE *."
-$FILE_BACKUP_MESSAGE = "This Log file backup..."
+$FILE_ROTATION_DONE_MESSAGE  = "Log file rotation * DONE *."
+$FILE_BACKUP_MESSAGE         = "This Log file backup..."
 $FILE_BACKUP_SUCCESS_MESSAGE = "Successful backup of previous Log file as {1}"
-$FILE_ROTATION_TAG = "[LOG UNIT]"
-$FILE_CREATION_MESSAGE = "Creation of Log file {1}"
+$FILE_ROTATION_TAG           = "[LOG UNIT]"
+$FILE_CREATION_MESSAGE       = "Creation of Log file {1}"
 
 begin const
   %TAG_PANIC ' 1
@@ -103,10 +104,10 @@ Type tLogThis
     me.isDebug = %FALSE
     me.verbose = %FALSE
     me.prependTag = %TRUE
-    me.ColorTime = %CONSOLE_FOREGROUND_BLUE + %Console_FOREGROUND_GREEN + %CONSOLE_FOREGROUND_INTENSITY ' bright cyan
-    me.ColorText = %CONSOLE_FOREGROUND_RED OR %CONSOLE_FOREGROUND_BLUE OR %CONSOLE_FOREGROUND_GREEN ' white
-    me.ColorDebugText = %CONSOLE_FOREGROUND_RED OR %CONSOLE_FOREGROUND_GREEN ' orange
-    me.ColorTag = %CONSOLE_FOREGROUND_RED OR %CONSOLE_FOREGROUND_GREEN ' orange
+    me.ColorTime = %CONSOLE_FOREGROUND_BLUE or %Console_FOREGROUND_GREEN or %CONSOLE_FOREGROUND_INTENSITY ' bright cyan
+    me.ColorText = %CONSOLE_FOREGROUND_RED or %CONSOLE_FOREGROUND_BLUE or %CONSOLE_FOREGROUND_GREEN ' white
+    me.ColorDebugText = %CONSOLE_FOREGROUND_RED or %CONSOLE_FOREGROUND_GREEN ' orange
+    me.ColorTag = %CONSOLE_FOREGROUND_RED or %CONSOLE_FOREGROUND_GREEN ' orange
     me.ColorBackground = Console_BackgroundRGB(0, 0, 0, 0 ) ' black background
     me.titleSeparator = " : "
     me.titleSeparatorFile = " ; "
@@ -124,7 +125,7 @@ Type tLogThis
     me.TagAlert = "[ALERT]"
     me.TagPanic = "[EMERGENCY]"
     me.minSeverityHighlight = %TAG_ERR
-    me.msgboxStyle = %MB_OK + %MB_TOPMOST ' %MB_ICONINFORMATION
+    me.msgboxStyle = %MB_OK or %MB_TOPMOST ' %MB_ICONINFORMATION
 
   end function
   
@@ -142,6 +143,10 @@ Type tLogThis
     me.statusbarlPart = statusbarlPart
   
   end function
+  
+  function private_isFlagSet(flagStorage as long, flag as long) as long
+    return bit_get(flagStorage, log2(flag))
+  end function
 
   function write(logWhere as long = 0, logWhat as String, optional logWhatTitle as string, severityTag as Byte) as Boolean
     
@@ -150,33 +155,36 @@ Type tLogThis
     Local sTagF as String
     Local sDT as String
     Local sDTF as String
-    Local successFile as Number
-    Local logWhatTitleFile = logWhatTitle
+    Local logWhatTitleFile as String = logWhatTitle
     
-    '[t] Workaround for Switch$ error ( see https://www.thinbasic.com/community/project.php?issueid=616 ) ...
-    local TagDebug = me.TagDebug 
-    local TagInfo = me.TagInfo
-    local TagNotice = me.TagNotice
-    local TagWarn = me.TagWarn
-    local TagErr = me.TagErr
-    local TagCrit = me.TagCrit
-    local TagAlert = me.TagAlert
-    local TagPanic = me.TagPanic
+    #region "Workaround for Switch$ error"
+    '[t] Workaround for Switch$ error ( see https://www.thinbasic.com/community/project.php?issueid=616 )
+
+    local TagDebug as String = me.TagDebug 
+    local TagInfo as String = me.TagInfo
+    local TagNotice as String = me.TagNotice
+    local TagWarn as String = me.TagWarn
+    local TagErr as String = me.TagErr
+    local TagCrit as String = me.TagCrit
+    local TagAlert as String = me.TagAlert
+    local TagPanic as String = me.TagPanic
     
-    Local ColorDebugText = me.ColorDebugText
-    Local ColorBackground = me.ColorBackground
-    Local ColorText = me.ColorText
-    ' ... workaround
+    Local ColorDebugText As Long = me.ColorDebugText
+    Local ColorBackground As long = me.ColorBackground
+    Local ColorText As Long = me.ColorText
+    #endregion
     
-    '[t] Workaround for PrintL error ( see https://www.thinbasic.com/community/project.php?issueid=617 ) ...
+    #region "Workaround for PrintL error"
+    '[t] Workaround for PrintL error ( see https://www.thinbasic.com/community/project.php?issueid=617 )
+
     Local myColor as number
-    ' ... workaround
+    #endregion
     
-    Local logFile = me.logFile
+    Local logFile as string = me.logFile
     
     if me.isDebug or not Bit_Get(logWhere,0) then ' Display debug and production messages (all messages) OR Display production messages only (no debug messages)
       
-      if Bit_Get(logWhere,1) then ' %LT_Time is SET, adds timestamp
+      if me.private_isFlagSet(logWhere, %LT_Time) then ' adds timestamp
         sDTF = DateTime$
         sDT = sDTF & me.timeSeparator
         sDTF &= me.timeSeparatorFile
@@ -190,21 +198,22 @@ Type tLogThis
         sTagF &= me.tagSeparatorFile
       end if
       
-      if Bit_Get(logWhere,3) then ' %LT_ToConsoleTitle is SET
+      if me.private_isFlagSet(logWhere, %LT_ToConsoleTitle) then
         Console_SetTitle(sDT & sTag & LogWhatTitle & LogWhat)
       end if
       
-      if Bit_Get(logWhere,4) then ' %LT_ToMsgBox is SET
+      if me.private_isFlagSet(logWhere, %LT_ToMsgBox) then
         MsgBoxW(0,logWhat, me.msgboxStyle + Switch(severityTag <= %TAG_ERR, %MB_ICONERROR, severityTag = %TAG_WARN, %MB_ICONWARNING, %TRUE, %MB_ICONINFORMATION), sDT & sTag & logWhatTitle)
       end if
       
       if len(logWhatTitle) > 0 then logWhatTitle &= me.titleSeparator
       
-      if Bit_Get(logWhere,2) then ' %LT_ToConsole is SET
+      if me.private_isFlagSet(logWhere, %LT_ToConsole) then
         Print sDT IN IIf(severityTag <= me.minSeverityHighlight, me.ColorTime OR me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, me.ColorTime OR me.ColorBackground)
         Print sTag in IIf(severityTag <= me.minSeverityHighlight, me.ColorTag OR me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, me.ColorTag OR me.ColorBackground) 
         
-'[t] Workaround for PrintL error ( see https://www.thinbasic.com/community/project.php?issueid=617 ) ...
+      #region "Workaround for PrintL error"
+      '[t] Workaround for PrintL error ( see https://www.thinbasic.com/community/project.php?issueid=617 ) ...
         
         'PrintL((LogWhatTitle & LogWhat) IN (Switch(Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground, severityTag <= me.minSeverityHighlight and Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, severityTag <= me.minSeverityHighlight, me.ColorText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, %TRUE, me.ColorText Or me.ColorBackground)))
         'PrintL(LogWhatTitle & LogWhat IN %CONSOLE_FOREGROUND_BLUE)'(Switch(Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground, severityTag <= me.minSeverityHighlight and Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, severityTag <= me.minSeverityHighlight, me.ColorText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, %TRUE, me.ColorText Or me.ColorBackground)))
@@ -212,63 +221,69 @@ Type tLogThis
         myColor = Switch(Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground, severityTag <= me.minSeverityHighlight and Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, severityTag <= me.minSeverityHighlight, me.ColorText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, %TRUE, me.ColorText Or me.ColorBackground)
         PrintL(LogWhatTitle & LogWhat IN myColor)
         
-' ... workaround
+      #endregion
     
       end if
       
-      if Bit_Get(logWhere,5) then ' %LT_ToLogFile is SET
-        if me.RotateLog = %FALSE then allOK = allOK and %FALSE
+      if me.private_isFlagSet(logWhere, %LT_ToLogFile) then
+        if me.RotateLog = %FALSE then allOK = %FALSE
         local sb as string
         sb = sDTF & sTagF & logWhatTitleFile & me.titleSeparatorFile & logWhat & me.endLineFile
-        successFile = FILE_Append(me.logFile,sb)
-        if successFile <> 0 Then allOK = allOK and %FALSE
-        Reset successFile
+        
+        allOK = allOK and (FILE_Append(me.logFile,sb) = 0)
       End If
-      
-      if Bit_Get(logWhere,6) then ' %LT_ToStatusBar is SET
+            
+      if me.private_isFlagSet(logWhere, %LT_ToStatusBar) then
         if me.statusbarhWnd <> 0 and me.statusbarctrlID <> 0 and me.statusbarlPart <> 0 Then ' Function SetStatusbar was previously called
           StatusBar_SetText(me.statusbarhWnd, me.statusbarctrlID, logWhatTitle & me.titleSeparator & logWhat, me.statusbarlPart)
         Else
-          allOK = allOK and %FALSE
+          allOK = %FALSE
         end if
       End If
     
     end If
     
-    if allOK then
-      Return %TRUE
-    Else
+    if not allOK then
       if isDebug or (not isDebug and verbose) then MsgBoxw(Null,"Error in function :" & Function_Name)
-      Return %FALSE
     end if
+    
+    Return allOK
       
   end function
 
-  function wPanic(logWhat as String) as Boolean  
+  function wPanic(logWhat as String) as Boolean
     Return me.write(me.defaultTarget,logWhat,me.defaultTitle,%TAG_PANIC)
   end function
-  function wAlert(logWhat as String) as Boolean  
+  
+  function wAlert(logWhat as String) as Boolean
     Return me.write(me.defaultTarget,logWhat,me.defaultTitle,%TAG_ALERT)
   end function
-    function wCrit(logWhat as String) as Boolean  
+  
+  function wCrit(logWhat as String) as Boolean
     Return me.write(me.defaultTarget,logWhat,me.defaultTitle,%TAG_CRIT)
   end function
-  function wErr(logWhat as String) as Boolean  
+  
+  function wErr(logWhat as String) as Boolean
     Return me.write(me.defaultTarget,logWhat,me.defaultTitle,%TAG_ERR)
   end function
-  function wWarn(logWhat as String) as Boolean  
+  
+  function wWarn(logWhat as String) as Boolean
     Return me.write(me.defaultTarget,logWhat,me.defaultTitle,%TAG_WARN)
   end function
-  function wNotice(logWhat as String) as Boolean  
+  
+  function wNotice(logWhat as String) as Boolean
     Return me.write(me.defaultTarget,logWhat,me.defaultTitle,%TAG_NOTICE)
   end function
-  function wInfo(logWhat as String) as Boolean  
+  
+  function wInfo(logWhat as String) as Boolean
     Return me.write(me.defaultTarget,logWhat,me.defaultTitle,%TAG_INFO)
   end function
-  function wDebug(logWhat as String) as Boolean  
+  
+  function wDebug(logWhat as String) as Boolean
     Return me.write(me.defaultTarget,logWhat,me.defaultTitle,%TAG_DEBUG)
   end function
-  function wNotag(logWhat as String) as Boolean  
+  
+  function wNotag(logWhat as String) as Boolean
     Return me.write(me.defaultTarget,logWhat,me.defaultTitle,%TAG_NOTAG)
   end function
 
@@ -276,64 +291,57 @@ Type tLogThis
     
     Local allOK as Boolean = %TRUE
     Local sLog, sLog2 as String
-    Local successFile as Number
     Local newFilename as String
     '[t] <this part needs to be tested>
     
     Local logFileE as String
-    Local logFile = me.logFile
+    Local logFile as string = me.logFile
     
-    if me.logFileMaxSize >0 and len(me.logFile) > 3 then 'Function SetLogFile was previously called
+    if me.logFileMaxSize > 0 and len(me.logFile) > 3 then 'Function SetLogFile was previously called
       
       logFileE = FILE_Exists(me.logFile)
       if not logFileE Then ' Create new log file
         sLog = DateTime$ & me.timeSeparatorFile & $FILE_ROTATION_TAG & me.tagSeparatorFile & StrFormat$($FILE_CREATION_MESSAGE, me.logFile) & me.endLineFile
-        successFile = FILE_Save(me.logFile, sLog)
-        if successFile <> 0 Then allOK = allOK and %FALSE
-        reset successFile
+        allOK = allOK and (FILE_Save(me.logFile, sLog) = 0)
       end if
       
       sLog = DateTime$ & me.timeSeparatorFile & $FILE_ROTATION_TAG & me.tagSeparatorFile & $FILE_ROTATION_START_MESSAGE & me.endLineFile
       sLog2 = me.timeSeparatorFile & $FILE_ROTATION_TAG & me.tagSeparatorFile & $FILE_BACKUP_MESSAGE & me.endLineFile
 
       if allOK and FILE_Size(me.logFile) + len(sLog) + 19 + Len(sLog2) > me.logFileMaxSize Then ' Size will be beyond me.logFileMaxSize
-        successFile = FILE_Append(me.logFile, sLog)
-        if successFile <> 0 Then allOK = allOK and %FALSE
-        reset successFile
+        allOK = allOK and (FILE_Append(me.logFile, sLog) = 0)
+
         if allOK Then
-          successFile = FILE_Append(me.logFile, DateTime$ & sLog2)
-          if successFile <> 0 Then allOK = allOK and %FALSE
-          reset successFile
+          allOK = allOK and (FILE_Append(me.logFile, DateTime$ & sLog2) = 0)
+
           if allOK Then
             newFilename = FILE_PathSplit(me.logFile, %PATH_ROOTPATH) & Date$ (3) & $SPC & time$(2) & $SPC & FILE_PathSplit(me.logFile, %PATH_FILEEXT)
-            successFile = FILE_Rename(me.logFile, newFilename)
-            if successFile <> 0 Then allOK = allOK and %FALSE
-            reset successFile
+            allOK = allOK and (FILE_Rename(me.logFile, newFilename) = 0)
+
           End If
         End If
+        
         if allOK Then
           sLog = DateTime$ & me.timeSeparatorFile & $FILE_ROTATION_TAG & me.tagSeparatorFile & StrFormat$($FILE_BACKUP_SUCCESS_MESSAGE, newFilename) & me.endLineFile
-          successFile = FILE_Append(me.logFile, sLog)
-          if successFile <> 0 Then allOK = allOK and %FALSE
-          reset successFile
+          allOK = allOK and (FILE_Append(me.logFile, sLog) = 0)
+          
         End If
+        
         if allOK Then
           sLog = DateTime$ & me.timeSeparatorFile & $FILE_ROTATION_TAG & me.tagSeparatorFile & StrFormat$($FILE_ROTATION_DONE_MESSAGE, newFilename) & me.endLineFile
-          successFile = FILE_Append(me.logFile, sLog)
-          if successFile <> 0 Then allOK = allOK and %FALSE
-          reset successFile
+          allOK = allOK and (FILE_Append(me.logFile, sLog) = 0)
+
         End If
       End If
     Else
-      allOK = allOK and %FALSE
+      allOK = %FALSE
     end if
     
-    if allOK then
-      Return %TRUE
-    Else
+    if not allOK then
       if isDebug or (not isDebug and verbose) then MsgBoxw(Null,"Error in function :" & Function_Name)
-      Return %FALSE
-    End If
+    end if
+    
+    Return allOK
   
   end function
  

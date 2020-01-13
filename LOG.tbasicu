@@ -129,7 +129,7 @@ Type tLogThis
 
   end function
   
-  Function SetLogFile (logFileFullPath as String, logFileMaxSize as Long)
+  Function SetLogFile(logFileFullPath as String, logFileMaxSize as Long)
   
     me.logFile = logFileFullPath
     me.logFileMaxSize = logFileMaxSize

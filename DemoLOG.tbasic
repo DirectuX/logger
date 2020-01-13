@@ -50,17 +50,17 @@ logger.SetLogFile (APP_ScriptPath & "Demo.log", 1024) ' MaxSize = 1Ko for demo p
 
 logger.isDebug = %TRUE
 
-logger.write(%LT_ToMsgBox+%LT_ToConsole, "This is a log to textBox and console", "This is a title", %TAG_INFO)
+logger.write(%LT_ToMsgBox + %LT_ToConsole, "This is a log to textBox and console", "This is a title", %TAG_INFO)
 
-logger.write(%LT_ToMsgBox+%LT_ToConsole, "Next, set the console title", "EXAMPLE 2", %TAG_INFO)
+logger.write(%LT_ToMsgBox + %LT_ToConsole, "Next, set the console title", "EXAMPLE 2", %TAG_INFO)
 
 logger.write(%LT_ToConsoleTitle, "This is a title", , %TAG_NOTAG)
 
-logger.write(%LT_ToMsgBox+%LT_ToConsole, "On console, you can jump a line too", "EXAMPLE 4", %TAG_NOTAG)
+logger.write(%LT_Debug + %LT_ToMsgBox + %LT_ToConsole, "On console, you can jump a line too", "EXAMPLE 4", %TAG_NOTAG)
 
 logger.write(%LT_ToConsole, "", "", %TAG_NOTAG)
 
-logger.write(%LT_Time+%LT_ToConsole, "Log with timestamp", "EXAMPLE 5", %TAG_DEBUG)
+logger.write(%LT_Time + %LT_ToConsole, "Log with timestamp", "EXAMPLE 5", %TAG_DEBUG)
 
 logger.write(%LT_ToConsole, "There are 8+1 levels of severity, as WARNING or ERROR ...", "EXAMPLE 6", %TAG_ERR)
 
@@ -68,21 +68,21 @@ logger.defaultTarget = %LT_ToMsgBox + %LT_ToConsole
 logger.defaultTitle = "Logger demo. - EXAMPLE 7"
 logger.wWarn("Log can be written via shortcuts methods as .wWarn, .wInfo ...")
 
-logger.ColorText = %CONSOLE_FOREGROUND_GREEN+%CONSOLE_FOREGROUND_INTENSITY
+logger.ColorText = %CONSOLE_FOREGROUND_GREEN + %CONSOLE_FOREGROUND_INTENSITY
 logger.TagDebug = "[DEFAULTS ARE MODIFIABLE]"
 ' see complete list in Function _Create() in LOG.tbasicu
 logger.write(%LT_ToConsole, "Every default setting is modifiable from your own script", "EXAMPLE 8", %TAG_DEBUG)
 
 logger.write(%LT_ToMsgBox, "Now logging to file...", "EXAMPLE 9", %TAG_WARN)
 
-logger.write(%LT_Time+%LT_ToLogFile, "This is a log in a file...", "EXAMPLE 9", %TAG_INFO)
+logger.write(%LT_Time + %LT_ToLogFile, "This is a log in a file...", "EXAMPLE 9", %TAG_INFO)
 
 OS_ShellExecute("open", APP_ScriptPath & "Demo.log",,,%SW_SHOWNORMAL)
 
 logger.isDebug = %FALSE
-logger.write(%LT_ToConsole, "End of the demo. This won't be written because of logger.isDebug = %FALSE", "EXAMPLE 10", %TAG_DEBUG)
+logger.write(%LT_Debug + %LT_ToConsole, "End of the demo. This won't be written because of logger.isDebug = %FALSE and %LT_Debug is set.", "EXAMPLE 10", %TAG_NOTICE)
 
-logger.write(%LT_ToConsoleTitle+%LT_ToConsole, "The End.", , %TAG_NOTAG)
+logger.write(%LT_ToConsoleTitle + %LT_ToConsole, "The End.", , %TAG_NOTAG)
 
 Printl "Press a key to quit"
 waitkey

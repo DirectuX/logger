@@ -1,4 +1,4 @@
-#Region "Unit description" '"Program description"
+﻿#Region "Unit description" '"Program description"
 
 '*********
 '
@@ -28,7 +28,7 @@ uses "File"
 
 ' Log equates
 begin Const
-  %LT_Debug          = 1 'Display only if isDebug = %TRUE
+  %LT_Debug          = 1 ' Display only if isDebug = %TRUE
   %LT_Time           = 2 ' Prepend DateTime$
   %LT_ToConsole      = 4
   %LT_ToConsoleTitle = 8
@@ -46,7 +46,7 @@ $FILE_ROTATION_TAG           = "[LOG UNIT]"
 $FILE_CREATION_MESSAGE       = "Creation of Log file {1}"
 
 begin const
-  %TAG_PANIC ' 1
+  %TAG_PANIC = 1 ' 1
   %TAG_ALERT ' 2
   %TAG_CRIT
   %TAG_ERR
@@ -182,7 +182,7 @@ Type tLogThis
     
     Local logFile as string = me.logFile
     
-    if me.isDebug or not Bit_Get(logWhere,0) then ' Display debug and production messages (all messages) OR Display production messages only (no debug messages)
+    if me.isDebug or not me.private_isFlagSet(logWhere, %LT_Debug) then ' Display debug and production messages (all messages) OR Display production messages only (no debug messages)
       
       if me.private_isFlagSet(logWhere, %LT_Time) then ' adds timestamp
         sDTF = DateTime$
@@ -218,7 +218,7 @@ Type tLogThis
         'PrintL((LogWhatTitle & LogWhat) IN (Switch(Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground, severityTag <= me.minSeverityHighlight and Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, severityTag <= me.minSeverityHighlight, me.ColorText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, %TRUE, me.ColorText Or me.ColorBackground)))
         'PrintL(LogWhatTitle & LogWhat IN %CONSOLE_FOREGROUND_BLUE)'(Switch(Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground, severityTag <= me.minSeverityHighlight and Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, severityTag <= me.minSeverityHighlight, me.ColorText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, %TRUE, me.ColorText Or me.ColorBackground)))
        
-        myColor = Switch(Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground, severityTag <= me.minSeverityHighlight and Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, severityTag <= me.minSeverityHighlight, me.ColorText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, %TRUE, me.ColorText Or me.ColorBackground)
+        myColor = Switch(me.private_isFlagSet(logWhere, %LT_Debug), me.ColorDebugText Or me.ColorBackground, severityTag <= me.minSeverityHighlight and me.private_isFlagSet(logWhere, %LT_Debug), me.ColorDebugText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, severityTag <= me.minSeverityHighlight, me.ColorText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, %TRUE, me.ColorText Or me.ColorBackground)
         PrintL(LogWhatTitle & LogWhat IN myColor)
         
       #endregion

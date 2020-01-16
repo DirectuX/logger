@@ -213,12 +213,35 @@ Type tLogThis
         Print sTag in IIf(severityTag <= me.minSeverityHighlight, me.ColorTag OR me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, me.ColorTag OR me.ColorBackground) 
         
       #region "Workaround for PrintL error"
-      '[t] Workaround for PrintL error ( see https://www.thinbasic.com/community/project.php?issueid=617 ) ...
-        
+        '[t] Workaround for PrintL error ( see https://www.thinbasic.com/community/project.php?issueid=617 ) ...
+
         'PrintL((LogWhatTitle & LogWhat) IN (Switch(Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground, severityTag <= me.minSeverityHighlight and Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, severityTag <= me.minSeverityHighlight, me.ColorText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, %TRUE, me.ColorText Or me.ColorBackground)))
         'PrintL(LogWhatTitle & LogWhat IN %CONSOLE_FOREGROUND_BLUE)'(Switch(Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground, severityTag <= me.minSeverityHighlight and Bit_Get(logWhere,0), me.ColorDebugText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, severityTag <= me.minSeverityHighlight, me.ColorText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, %TRUE, me.ColorText Or me.ColorBackground)))
-       
-        myColor = Switch(me.private_isFlagSet(logWhere, %LT_Debug), me.ColorDebugText Or me.ColorBackground, severityTag <= me.minSeverityHighlight and me.private_isFlagSet(logWhere, %LT_Debug), me.ColorDebugText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, severityTag <= me.minSeverityHighlight, me.ColorText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, %TRUE, me.ColorText Or me.ColorBackground)
+
+        '[t] Next line raise thinbasic error, shouldn't
+        ' myColor = Switch(me.private_isFlagSet(logWhere, %LT_Debug), me.ColorDebugText Or me.ColorBackground, severityTag <= me.minSeverityHighlight and me.private_isFlagSet(logWhere, %LT_Debug), me.ColorDebugText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, severityTag <= me.minSeverityHighlight, me.ColorText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, %TRUE, me.ColorText Or me.ColorBackground)
+
+        '[t] Next lines raise thinbasic error, shouldn't
+        ' this is the same code as above but splitted to 4 lines.
+        'myColor = Switch( _
+        'me.private_isFlagSet(logWhere, %LT_Debug), me.ColorDebugText Or me.ColorBackground, _ 
+        'severityTag <= me.minSeverityHighlight and me.private_isFlagSet(logWhere, %LT_Debug), me.ColorDebugText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, _ 
+        'severityTag <= me.minSeverityHighlight, me.ColorText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, _ 
+        '%TRUE, me.ColorText Or me.ColorBackground)
+
+        '[t] Next lines resolves two issues : 
+        ' by reordering the conditions, thinbasic does not raise error anymore.
+        ' by reordering the conditions we ensure all cases can be reached.
+
+        'myColor = Switch( _
+        'me.private_isFlagSet(logWhere, %LT_Debug) and severityTag <= me.minSeverityHighlight, me.ColorDebugText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, _ 
+        'severityTag <= me.minSeverityHighlight, me.ColorText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, _ 
+        'me.private_isFlagSet(logWhere, %LT_Debug), me.ColorDebugText Or me.ColorBackground, _ 
+        '%TRUE, me.ColorText Or me.ColorBackground)
+        
+        'I prefere one lined instructions
+        myColor = Switch( me.private_isFlagSet(logWhere, %LT_Debug) and severityTag <= me.minSeverityHighlight, me.ColorDebugText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, severityTag <= me.minSeverityHighlight, me.ColorText Or me.ColorBackground Or %CONSOLE_FOREGROUND_INTENSITY, me.private_isFlagSet(logWhere, %LT_Debug), me.ColorDebugText Or me.ColorBackground, %TRUE, me.ColorText Or me.ColorBackground)
+        
         PrintL(LogWhatTitle & LogWhat IN myColor)
         
       #endregion
